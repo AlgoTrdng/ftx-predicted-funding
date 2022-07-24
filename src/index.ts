@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.149.0/http/server.ts"
 
 import { fetchFuturesAndIndexOhlc, fetchSpotAndPerpMarkets, FtxOhlc } from "./ftx/index.ts"
+import { checkRateLimit } from "./utils/rateLimiter.ts"
 
 const {
   spotMarkets,
@@ -77,7 +78,17 @@ const getFundingRates = (() => {
 })()
 
 const PORT = Deno.env.get('PORT')
-serve((req) => {
+serve((req, connInfo) => {
+  const {
+    error: isRateLimited, ...res } = checkRateLimit(connInfo)
+
+  if (isRateLimited) {
+    return Response.json(res.body, {
+      status: res.status,
+      headers: res.headers,
+    })
+  }
+
   const url = new URL(req.url)
 
   const fundingRates = getFundingRates()
@@ -90,12 +101,15 @@ serve((req) => {
       return Response.json({
         data: null,
       }, {
-        status: 400,
+        headers: res.headers,
+        status: 404,
       })
     }
 
     return Response.json({
       data,
+    }, {
+      headers: res.headers,
     })
   }
 
@@ -115,11 +129,15 @@ serve((req) => {
 
     return Response.json({
       data,
+    }, {
+      headers: res.headers,
     })
   }
 
   return Response.json({
     data: Object.fromEntries([...fundingRates])
+  }, {
+    headers: res.headers,
   })
 }, {
   hostname: 'localhost',

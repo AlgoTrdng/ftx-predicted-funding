@@ -1,5 +1,5 @@
 {
   "tasks": {
-    "start": "deno run --allow-read --allow-env --allow-net src/index.ts"
+    "start": "APP_ENV=dev deno run --allow-read --allow-env --allow-net src/index.ts"
   }
 }

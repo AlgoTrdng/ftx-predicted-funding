@@ -140,7 +140,7 @@ serve((req, connInfo) => {
     headers: res.headers,
   })
 }, {
-  hostname: 'localhost',
+  hostname: Deno.env.get('APP_ENV') === 'dev' ? 'localhost' : undefined,
   port: Number(PORT || 3002),
   onListen({ hostname, port }) {
     console.log(`Listening on: ${hostname}:${port}`)

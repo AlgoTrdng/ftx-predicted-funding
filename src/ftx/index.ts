@@ -68,7 +68,7 @@ export type FtxOhlc = {
 }
 
 export const fetchFuturesAndIndexOhlc = async (baseCurrency: string) => {
-  const ts = new Date().getTime() / 1000
+  const ts = Math.round(new Date().getTime() / 1000)
   const params = new URLSearchParams({
     resolution: '60',
     start_time: (ts - 60 * 60).toString(),

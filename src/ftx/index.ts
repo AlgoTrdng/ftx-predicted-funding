@@ -1,8 +1,18 @@
 const FTX_API = 'https://ftx.com/api'
 
-type FtxResponse<T> = {
-  success: boolean
-  result: T
+const ftxFetch = async <ReturnType>(endpoint: string, init?: RequestInit) => {
+  const res = await fetch(`${FTX_API}${endpoint}`, init)
+  const dataPromise = res.headers.get('content-type') === 'application/json' ? res.json() : res.text()
+  if (!res.ok) {
+    console.error('[FTX API ERROR]:', await dataPromise)
+    return null
+  }
+  const data = await dataPromise
+  if (data.success) {
+    return data.result as ReturnType
+  }
+  console.error(data)
+  return null
 }
 
 type FtxMarket = {
@@ -24,14 +34,16 @@ export type FutureMarket = {
 }
 
 export const fetchSpotAndPerpMarkets = async () => {
-  const res = await (
-    await fetch(`${FTX_API}/markets`)
-  ).json() as FtxResponse<FtxMarket[]>
+  const res = await ftxFetch<FtxMarket[]>('/markets')
+  if (!res) {
+    // Exit because app can not start
+    Deno.exit()
+  }
 
   const spotMarkets: SpotMarket[] = []
   const perpMarkets: FutureMarket[] = []
 
-  res.result.forEach(({
+  res.forEach(({
     name,
     baseCurrency,
     quoteCurrency,
@@ -79,15 +91,21 @@ export const fetchFuturesAndIndexOhlc = async (baseCurrency: string) => {
     `/indexes/${baseCurrency}/candles?${params}`
   ]
 
-  const [
-    perpOhlc,
-    indexOhlc,
-  ] = await Promise.all(requestUrls.map((reqPath) => (
-    fetch(`${FTX_API}${reqPath}`).then((res) => res.json())
-  ))) as Array<FtxResponse<FtxOhlc[]>>
+  try {
+    const [
+      perpOhlc,
+      indexOhlc,
+    ] = await Promise.all(requestUrls.map((reqPath) => (
+      ftxFetch<FtxOhlc[]>(reqPath)
+    )))
 
-  return {
-    perpOhlc: perpOhlc.result,
-    indexOhlc: indexOhlc.result,
+    if (!perpOhlc || !indexOhlc) {
+      return null
+    }
+
+    return { perpOhlc, indexOhlc }
+  } catch (error) {
+    console.error(error)
+    return null
   }
 }

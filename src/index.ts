@@ -52,11 +52,12 @@ const getFundingRates = (() => {
   
   const setPredictedFundingRates = async () => {
     for (const market of markets) {
-      const {
-        perpOhlc,
-        indexOhlc,
-      } = await fetchFuturesAndIndexOhlc(market.baseCurrency)
-    
+      const ohlcRes = await fetchFuturesAndIndexOhlc(market.baseCurrency)  
+      if (!ohlcRes) {
+        continue
+      }
+      const { perpOhlc, indexOhlc } = ohlcRes
+
       const perpTwap = calcTwap(perpOhlc)
       const indexTwap = calcTwap(indexOhlc)
     
